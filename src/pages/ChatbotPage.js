@@ -52,7 +52,6 @@ const ChatMessages = styled.div`
   padding: 1rem;
   overflow-y: auto;
   border-radius: 10px !important; /* Set border radius to 10px */
-
 `;
 
 const ChatInputContainer = styled.div`
@@ -93,15 +92,16 @@ const MessageContainer = styled.div`
   display: flex;
   align-items: flex-start;
   margin: 0.5rem 0;
+  justify-content: ${({ $isUser }) => ($isUser ? 'flex-end' : 'flex-start')};
 `;
 
 const MessageIcon = styled.div`
   margin-right: 0.5rem;
-  color: ${({ isUser }) => (isUser ? '#007bff' : '#28a745')};
+  color: ${({ $isUser }) => ($isUser ? '#007bff' : '#28a745')};
 `;
 
 const MessageText = styled.span`
-  background-color: ${({ isUser }) => (isUser ? '#dcf8c6' : '#ececec')};
+  background-color: ${({ $isUser }) => ($isUser ? '#dcf8c6' : '#ececec')};
   padding: 0.5rem;
   border-radius: 5px;
   max-width: 80%;
@@ -116,13 +116,24 @@ const ChatbotPage = () => {
     if (input.trim()) {
       setMessages([...messages, { text: input, sender: 'user' }]);
       setInput('');
-      // Simulate a bot response
-      setTimeout(() => {
-        setMessages((prevMessages) => [
+
+      fetch('http://localhost:5000/chatbot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ input }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        setMessages(prevMessages => [
           ...prevMessages,
-          { text: `This is a response to : ${input}`, sender: 'bot' },
+          { text: data.response, sender: 'bot' },
         ]);
-      }, 1000);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
     }
   };
 
@@ -143,11 +154,11 @@ const ChatbotPage = () => {
       <ChatContainer>
         <ChatMessages>
           {messages.map((msg, index) => (
-            <MessageContainer key={index} style={{ justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start' }}>
-              <MessageIcon isUser={msg.sender === 'user'}>
+            <MessageContainer key={index} $isUser={msg.sender === 'user'}>
+              <MessageIcon $isUser={msg.sender === 'user'}>
                 {msg.sender === 'user' ? <FaUser /> : <FaRobot />}
               </MessageIcon>
-              <MessageText isUser={msg.sender === 'user'}>{msg.text}</MessageText>
+              <MessageText $isUser={msg.sender === 'user'}>{msg.text}</MessageText>
             </MessageContainer>
           ))}
         </ChatMessages>
@@ -157,6 +168,7 @@ const ChatbotPage = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="Type a message..."
           />
           <ChatButton onClick={handleSend}>Send</ChatButton>
         </ChatInputContainer>

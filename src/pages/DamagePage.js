@@ -49,7 +49,7 @@ const ResultText = styled.p`
 
 const DamagePage = () => {
   const [image, setImage] = useState(null);
-  const [result, setResult] = useState(null);
+  const [results, setResults] = useState(null);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -58,8 +58,23 @@ const DamagePage = () => {
       setImage(reader.result);
     };
     reader.readAsDataURL(file);
-    // Simulate result for demonstration
-    setResult(file.name.includes('damage') ? 'Damage Detected' : 'Damaged');
+  };
+
+  const handleUpload = () => {
+    const formData = new FormData();
+    formData.append('file', image);
+
+    fetch('http://localhost:5000/detect', {
+      method: 'POST',
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        setResults(data.detected_objects);
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+      });
   };
 
   return (
@@ -68,7 +83,19 @@ const DamagePage = () => {
       <UploadInput type="file" id="image-upload" onChange={handleImageChange} accept="image/*" />
       <UploadLabel htmlFor="image-upload">Upload Image</UploadLabel>
       {image && <ImagePreview src={image} alt="Uploaded" />}
-      {result && <ResultText>{result}</ResultText>}
+      <button onClick={handleUpload}>Detect Damage</button>
+      {results && (
+        <div>
+          <h2>Detection Results:</h2>
+          <ul>
+            {results.map((result, index) => (
+              <li key={index}>
+                Class: {result.class}, Confidence: {result.confidence}, Box: {result.box.join(', ')}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Container>
   );
 };
